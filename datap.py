@@ -25,11 +25,17 @@ def process_image(file_path):
     img = tf.image.decode_jpeg(img)
     label_path = get_label(file_path)
     label = tf.io.read_file(label_path)
+    label = tf.strings.split(label, sep="\n", maxsplit=-1)
+    label = tf.strings.split(label, sep=" ", maxsplit=-1).to_tensor(default_value='')
+    label = tf.strings.to_number(label,out_type=tf.dtypes.float32)
     return img, label
 
-# img, label = process_image(b"data/train/images/000037-shed-cat_jpg.rf.33c39eb2d076a7485c48ce8ae8683791.jpg")
+# img, label = process_image(b"data/train/images/nvr4216_Tree-Line_main_20220705005518_-1_jpg.rf.c556a2596dd276772eff363fbf9ba6cd.jpg")
+
+# print(label)
+# print(label.shape)
 train_dataset = dataset.map(process_image)
-for image, label in train_dataset.take(1):
+for image, label in train_dataset.take(2):
     print("****image",image)
     print("****label",label)
 
