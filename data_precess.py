@@ -3,17 +3,19 @@ import cv2
 import os
 import numpy as np
 
-
-
-
-
-
-
-
 # dataset = tf.data.Dataset.list_files('./data/train/images/*', shuffle=False)
 class_names = ['cat', 'deer', 'dog', 'fox', 'person', 'rabbit', 'raccoon']
-# for da in dataset.take(2):
-#     print(da)
+"""
+class_names2 = {
+    0:'cat',
+    1:'deer', 
+    2:'dog', 
+    3:'fox',
+    4:'person',
+    5:'rabbit',
+    6:'raccoon'}
+"""
+
 def get_label(file_path):
     path = b'data/train/labels/'
     parts = tf.strings.split(file_path, os.path.sep)[-1]
