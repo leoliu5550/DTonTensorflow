@@ -4,4 +4,5 @@
 *data/train/labels*
 *data/valid/images*
 *data/valid/labels*
-*temp.py
+*temp*
+*.log
