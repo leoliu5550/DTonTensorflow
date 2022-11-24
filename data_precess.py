@@ -31,7 +31,7 @@ def get_label_path(img_file_path):
     label_path = tf.strings.join([parts,b'.txt'])
     label_path = tf.io.gfile.join(parents,path,label_path.numpy())
     return label_path
-
+# fixed this 
 def process_image(file_path):
     img = tf.io.read_file(file_path) # load the raw data from the file as a string
     img = tf.image.decode_jpeg(img)
@@ -44,6 +44,8 @@ def process_image(file_path):
     label = tf.strings.split(label, sep=" ", maxsplit=-1).to_tensor(default_value='')
     label = tf.strings.to_number(label,out_type=tf.dtypes.float32)
     return img, label
+
+
 # should be start here
 file_path = "data/train/images/0a480c46-4831-43ba-a5fc-08258c2b6f55-dog_person_jpg.rf.3d6102e59c01a16c9daf26977330e5d2.jpg"
 label_path = get_label_path(file_path)
@@ -51,6 +53,7 @@ with open(label_path, 'r') as bboxfile:
     records = bboxfile.readlines()
     for record in records:
         fields = record.strip().split(',')
+        print(fields)
         # filename = fields[0][:-4]
         # labels = [labels_dict[x] for x in fields[1].split(';')]
         # xmin = [float(x) for x in fields[2].split(';')]
