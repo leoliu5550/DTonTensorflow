@@ -1,5 +1,5 @@
 import tensorflow as tf
-import cv2
+import numpy as np
 import os
 import numpy as np
 
@@ -38,11 +38,12 @@ def get_label_path(img_file_path):
 # fixed this 
 def process_image(file_path):
     filename = file_path
-    img = tf.io.read_file(file_path) # load the raw data from the file as a string
-    img = tf.image.decode_image(img)   
-    img = tf.image.encode_jpeg(img) 
-    # height = img.shape[0]
-    # width  = img.shape[1]
+    img = file_path
+    # img = tf.io.read_file(file_path) # load the raw data from the file as a string
+    # img = tf.image.decode_jpeg(img) 
+    # img = np.array(img).tobytes()
+    # img = tf.image.convert_image_dtype(img, tf.float32)
+
     label_path = get_label_path(file_path)
     #replace label = tf.io.read_file(label_path)
     with open(label_path, 'r') as bboxfile:
@@ -64,18 +65,22 @@ def process_image(file_path):
 
 # 產生出TFrecord的格式資料
 def make_example(*args):
-    
     """ image, height, width, bbox, filename """
     args = args[0]
-    image, bbox, filename = args[0],args[1],args[2]
+    img, bbox, filename = args[0],np.array(args[1]),args[2]
+    print(bbox)
+    img = tf.io.read_file(img) 
+    img = tf.image.decode_jpeg(img) 
+    img = np.array(img).tobytes()
+
     colorspace = b'RGB'
     channels = 3
     img_format = b'JPEG'
-    # print(type(image.numpy()))
-    data =  tf.train.Example(
-            features=tf.train.Features(
-                feature={
-                    'image' : tf.train.Feature(bytes_list=tf.train.BytesList(value=[image])),
+    
+    tfrecord = tf.train.Example(
+        features=tf.train.Features(
+            feature={
+                    'image' : tf.train.Feature(bytes_list=tf.train.BytesList(value=[img])),
                     'height' : tf.train.Feature(int64_list=tf.train.Int64List(value=[HEIGHT])),
                     'width' : tf.train.Feature(int64_list=tf.train.Int64List(value=[WIDTH])),
                     'channels' : tf.train.Feature(int64_list=tf.train.Int64List(value=[channels])),
@@ -88,33 +93,10 @@ def make_example(*args):
                     'bbox_ymax' : tf.train.Feature(float_list=tf.train.FloatList(value=bbox[4])),
                     'filename': tf.train.Feature(bytes_list=tf.train.BytesList(value=[filename]))
                 }
-            )
         )
-    return data
+    )
+    return tfrecord
 
-data = b"data/test/images/647617de-e5d3-4f65-adb1-ead45b3b76be-raccoon_jpg.rf.67add1362c925b75c8843810e42b7f97.jpg"
-# print(type(process_image(data)))
-# print(process_image(data))
-print(make_example(process_image(data)))
-
-
- 
-#这个函数用来生成TFRECORD文件，第一个参数是列表，每个元素是图片文件名，第二个参数是写入的目录名
-#第三个参数是文件名的起始序号，第四个参数是队列名称，用于和父进程发送消息
-# dataset = dataset.map(process_image)
-
-# for da in dataset.take(2):
-#     print(da)
-
-
-# def int64_feature(value):
-#     if not isinstance(value, list):
-#         value = [value]
-#     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
-
-# # 轉Bytes資料為 tf.train.Feature 格式
-# def bytes_feature(value):
-#     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 # def convert_to_TFRecord(images, labels, filename):
 #     n_samples = len(labels)
