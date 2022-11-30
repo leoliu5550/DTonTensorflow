@@ -3,7 +3,7 @@ import numpy as np
 import os
 import numpy as np
 
-# dataset = tf.data.Dataset.list_files('./data/train/images/*', shuffle=False)
+
 HEIGHT =608
 WIDTH = 608
 
@@ -35,7 +35,8 @@ def get_label_path(img_file_path):
     label_path = tf.strings.join([parts,b'.txt'])
     label_path = tf.io.gfile.join(parents,path,label_path.numpy())
     return label_path
-# fixed this 
+
+
 def process_image(file_path):
     filename = file_path
     img = file_path
@@ -68,7 +69,6 @@ def make_example(*args):
     """ image, height, width, bbox, filename """
     args = args[0]
     img, bbox, filename = args[0],np.array(args[1]),args[2]
-    print(bbox)
     img = tf.io.read_file(img) 
     img = tf.image.decode_jpeg(img) 
     img = np.array(img).tobytes()
@@ -76,7 +76,6 @@ def make_example(*args):
     colorspace = b'RGB'
     channels = 3
     img_format = b'JPEG'
-    
     tfrecord = tf.train.Example(
         features=tf.train.Features(
             feature={
@@ -96,6 +95,12 @@ def make_example(*args):
         )
     )
     return tfrecord
+
+# do this crop
+for i in train_dataset.take(1):
+    print(i)
+
+
 
 
 # def convert_to_TFRecord(images, labels, filename):
