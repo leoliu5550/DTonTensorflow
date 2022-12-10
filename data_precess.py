@@ -1,9 +1,12 @@
 import tensorflow as tf
-import cv2
+import numpy as np
 import os
 import numpy as np
 
-# dataset = tf.data.Dataset.list_files('./data/train/images/*', shuffle=False)
+
+HEIGHT =608
+WIDTH = 608
+
 class_names = ['cat', 'deer', 'dog', 'fox', 'person', 'rabbit', 'raccoon']
 """
 class_names2 = {
@@ -17,6 +20,7 @@ class_names2 = {
 """
 IMG_PATH =["data/train/images","data/valid/images","data/test/images"]
 #create TFRECORD 
+train_dataset = tf.data.Dataset.list_files(IMG_PATH[0]+'/*.jpg')
 
 def get_label_path(img_file_path):
     path = b'labels'
@@ -31,53 +35,73 @@ def get_label_path(img_file_path):
     label_path = tf.strings.join([parts,b'.txt'])
     label_path = tf.io.gfile.join(parents,path,label_path.numpy())
     return label_path
-# fixed this 
+
+
 def process_image(file_path):
-    img = tf.io.read_file(file_path) # load the raw data from the file as a string
-    img = tf.image.decode_jpeg(img)
+    filename = file_path
+    img = file_path
+    # img = tf.io.read_file(file_path) # load the raw data from the file as a string
+    # img = tf.image.decode_jpeg(img) 
+    # img = np.array(img).tobytes()
+    # img = tf.image.convert_image_dtype(img, tf.float32)
+
     label_path = get_label_path(file_path)
-    label = tf.io.read_file(label_path)
+    #replace label = tf.io.read_file(label_path)
+    with open(label_path, 'r') as bboxfile:
+        records = bboxfile.readlines()
+    labels = [int(lab.split(" ")[0]) for lab in records]
+    """
+    Yolo 格式 x, y, w, h
+    - x, y 代表該bndBox的中心座標與圖片寬高的比值,是bndBox歸一化後的中心座標
+    - w, h代表該bndBox的寬高與輸入圖像寬高的比值,是bndBox歸一化後的寬高座標
+    """
+    x = [float(x.split(" ")[1]) for x in records]
+    y = [float(y.split(" ")[2]) for y in records]
+    w = [float(w.split(" ")[3]) for w in records]
+    h = [float(h.split(" ")[3]) for h in records]
+    bbox_list = tf.convert_to_tensor(np.array([labels, x, y, w, h] ))
+    # label_data={"image":img, "height":height, "width":width, "bbox":bbox_list, "filename":filename}
+    # return label_data
+    return img,bbox_list,filename
+
+# 產生出TFrecord的格式資料
+def make_example(*args):
+    """ image, height, width, bbox, filename """
+    args = args[0]
+    img, bbox, filename = args[0],np.array(args[1]),args[2]
+    img = tf.io.read_file(img) 
+    img = tf.image.decode_jpeg(img) 
+    img = np.array(img).tobytes()
+
+    colorspace = b'RGB'
+    channels = 3
+    img_format = b'JPEG'
+    tfrecord = tf.train.Example(
+        features=tf.train.Features(
+            feature={
+                    'image' : tf.train.Feature(bytes_list=tf.train.BytesList(value=[img])),
+                    'height' : tf.train.Feature(int64_list=tf.train.Int64List(value=[HEIGHT])),
+                    'width' : tf.train.Feature(int64_list=tf.train.Int64List(value=[WIDTH])),
+                    'channels' : tf.train.Feature(int64_list=tf.train.Int64List(value=[channels])),
+                    'colorspace' : tf.train.Feature(bytes_list=tf.train.BytesList(value=[colorspace])),
+                    'img_format' : tf.train.Feature(bytes_list=tf.train.BytesList(value=[img_format])),
+                    'label' : tf.train.Feature(int64_list=tf.train.Int64List(value=bbox[0])),
+                    'bbox_xmin' : tf.train.Feature(float_list=tf.train.FloatList(value=bbox[1])),
+                    'bbox_xmax' : tf.train.Feature(float_list=tf.train.FloatList(value=bbox[2])),
+                    'bbox_ymin' : tf.train.Feature(float_list=tf.train.FloatList(value=bbox[3])),
+                    'bbox_ymax' : tf.train.Feature(float_list=tf.train.FloatList(value=bbox[4])),
+                    'filename': tf.train.Feature(bytes_list=tf.train.BytesList(value=[filename]))
+                }
+        )
+    )
+    return tfrecord
+
+# do this crop
+for i in train_dataset.take(1):
+    print(i)
 
 
 
-    label = tf.strings.split(label, sep="\n", maxsplit=-1)
-    label = tf.strings.split(label, sep=" ", maxsplit=-1).to_tensor(default_value='')
-    label = tf.strings.to_number(label,out_type=tf.dtypes.float32)
-    return img, label
-
-
-# should be start here
-file_path = "data/train/images/0a480c46-4831-43ba-a5fc-08258c2b6f55-dog_person_jpg.rf.3d6102e59c01a16c9daf26977330e5d2.jpg"
-label_path = get_label_path(file_path)
-with open(label_path, 'r') as bboxfile:
-    records = bboxfile.readlines()
-    for record in records:
-        fields = record.strip().split(',')
-        print(fields)
-        # filename = fields[0][:-4]
-        # labels = [labels_dict[x] for x in fields[1].split(';')]
-        # xmin = [float(x) for x in fields[2].split(';')]
-        # ymin = [float(x) for x in fields[3].split(';')]
-        # xmax = [float(x) for x in fields[4].split(';')]
-        # ymax = [float(x) for x in fields[5].split(';')]
-        # bbox_list[filename] = [labels, xmin, ymin, xmax, ymax] 
-# label = tf.io.read_file(label_path)
-# print(label)
-
-# dataset = dataset.map(process_image)
-
-# for da in dataset.take(2):
-#     print(da)
-
-
-# def int64_feature(value):
-#     if not isinstance(value, list):
-#         value = [value]
-#     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
-
-# # 轉Bytes資料為 tf.train.Feature 格式
-# def bytes_feature(value):
-#     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 # def convert_to_TFRecord(images, labels, filename):
 #     n_samples = len(labels)
