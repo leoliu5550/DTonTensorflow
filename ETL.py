@@ -4,7 +4,7 @@ import csv
 # data/crazing_5.xml	crazing;crazing	10;15	3;110	197;197	108;198
 HEIGHT =608
 WIDTH = 608
-os.chdir(r"/Users/leoliu/Documents/研究所/葉老師數值分析/project")
+print(os.listdir())
 datapath = ['data/train','data/valid','data/test']
 
 def read_image_id(path):
@@ -12,8 +12,8 @@ def read_image_id(path):
     path = os.listdir(path)
     data=[]
     for d in path:
-        data.append(d.split('.jpg')[0])
-    return path
+        data.append(d[:-4])
+    return data
 
 
 def id2image_path(datapath,image_id):
@@ -75,12 +75,10 @@ def unbox(data):
     return bbox
 
 
-
-
-
+N = 0
 
 for i,d in enumerate(datapath):
-
+    rownum = 0
     dataID = read_image_id(d)
     data_label_locate = id_located_label(d,dataID)
     temppath = d
@@ -88,20 +86,27 @@ for i,d in enumerate(datapath):
     
     with open(filename,'w') as file:
         for ID in dataID:
+            rownum+=1
             image_id = ID
-            label_path = data_label_locate[image_id]
-            bbox = content_reader(label_path)
-            # image_path
-            row = [id2image_path(temppath,image_id) ]
-            for i in  unbox(bbox):
-                row.append(i)  
-        
-            writer = csv.writer(file)
+            if image_id in data_label_locate.keys():
+                label_path = data_label_locate[image_id]
+                bbox = content_reader(label_path)
+                # image_path
+                row = [id2image_path(temppath,image_id) ]
+                for i in  unbox(bbox):
+                    row.append(i)  
             
-            # 寫入一列資料
-            writer.writerow(row)
-
-
+                writer = csv.writer(file)
+                
+                # 寫入一列資料
+                writer.writerow(row)
+            else:
+                N+=1
+                print(N)
+                print(d)
+                print(image_id)
+    print(d)
+    print(rownum)
 
     
     
